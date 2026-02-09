@@ -160,10 +160,6 @@ exports.rule = entities.Issue.onChange({
 });
 ```
 
-### What about the airgapped instance?
-
-Since your production YouTrack is airgapped and can't reach Kafka over HTTP, for that environment you'd likely need **Approach C** — an external poller that sits inside the airgapped network, calls YouTrack's REST API `/api/activities` endpoint on a schedule, and produces to Kafka. That's a small Java/Quarkus service that would fit naturally into your stack. Let me know if you want me to scaffold that as well.
-
 ### Quick summary
 
 | Piece | What it does |
