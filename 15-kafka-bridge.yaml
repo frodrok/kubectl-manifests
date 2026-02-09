@@ -1,0 +1,24 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaBridge
+metadata:
+  name: youtrack-bridge
+  namespace: youtrack-dev
+spec:
+  replicas: 1
+  bootstrapServers: youtrack-kafka-kafka-bootstrap:9092
+  http:
+    port: 8080
+  consumer:
+    config:
+      auto.offset.reset: earliest
+  producer:
+    config:
+      acks: "1"
+      delivery.timeout.ms: 30000
+  resources:
+    requests:
+      memory: 256Mi
+      cpu: 100m
+    limits:
+      memory: 512Mi
+      cpu: 500m
