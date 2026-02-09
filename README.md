@@ -10,30 +10,25 @@
 ## Deploy
 
 ```bash
-# 1. Create namespace
-kubectl apply -f 00-namespace.yaml
-
-# 2. Install Strimzi operator (pick one)
+# 1. Install Strimzi operator (pick one — must be done before applying kustomization)
 # Option A: Direct install
+kubectl create namespace youtrack-dev
 kubectl create -f 'https://strimzi.io/install/latest?namespace=youtrack-dev' -n youtrack-dev
 
 # Option B: Helm
+kubectl create namespace youtrack-dev
 helm repo add strimzi https://strimzi.io/charts/
 helm install strimzi-operator strimzi/strimzi-kafka-operator -n youtrack-dev
 
-# 3. Wait for operator to be ready
+# 2. Wait for operator to be ready
 kubectl wait deployment/strimzi-cluster-operator --for=condition=Available -n youtrack-dev --timeout=120s
 
-# 4. Deploy Kafka cluster
-kubectl apply -f 10-strimzi-kafka.yaml
+# 3. Apply everything via kustomize
+kubectl apply -k .
 
-# 5. Wait for Kafka to be ready
+# 4. Wait for services to come up
 kubectl wait kafka/youtrack-kafka --for=condition=Ready -n youtrack-dev --timeout=300s
-
-# 6. Deploy YouTrack
-kubectl apply -f 20-youtrack.yaml
-
-# 7. Wait for YouTrack to start (can take a few minutes on first boot)
+kubectl wait kafkabridge/youtrack-bridge --for=condition=Ready -n youtrack-dev --timeout=120s
 kubectl rollout status statefulset/youtrack -n youtrack-dev --timeout=600s
 ```
 
@@ -52,6 +47,21 @@ youtrack-kafka-kafka-bootstrap.youtrack-dev.svc.cluster.local:9092  (plaintext)
 youtrack-kafka-kafka-bootstrap.youtrack-dev.svc.cluster.local:9093  (TLS)
 ```
 
+## Kafka HTTP Bridge
+
+The Strimzi HTTP Bridge accepts REST calls and produces/consumes to Kafka:
+
+```
+http://youtrack-bridge-bridge-service.youtrack-dev.svc.cluster.local:8080
+```
+
+Produce to a topic:
+```bash
+curl -X POST http://youtrack-bridge-bridge-service:8080/topics/youtrack-events \
+  -H 'Content-Type: application/vnd.kafka.json.v2+json' \
+  -d '{"records": [{"key": "TEST-1", "value": {"eventType": "CREATED", "summary": "test"}}]}'
+```
+
 ## What to Customize
 
 | Item | Where | Notes |
@@ -66,9 +76,8 @@ youtrack-kafka-kafka-bootstrap.youtrack-dev.svc.cluster.local:9093  (TLS)
 ## Teardown
 
 ```bash
-kubectl delete -f 20-youtrack.yaml
-kubectl delete -f 10-strimzi-kafka.yaml
+kubectl delete -k .
 # Strimzi operator:
 kubectl delete -f 'https://strimzi.io/install/latest?namespace=youtrack-dev' -n youtrack-dev
-kubectl delete -f 00-namespace.yaml
+kubectl delete namespace youtrack-dev
 ```
