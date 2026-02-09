@@ -1,0 +1,14 @@
+apiVersion: kustomize.io/v1beta1
+kind: Kustomization
+
+namespace: youtrack-dev
+
+resources:
+  - 00-namespace.yaml
+  - 10-strimzi-kafka.yaml
+  - 15-kafka-bridge.yaml
+  - 20-youtrack.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: youtrack-dev
+  app.kubernetes.io/managed-by: kustomize
